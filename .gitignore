@@ -1,0 +1,25 @@
+# Node
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+.env
+.DS_Store
+
+# Logs
+logs/
+*.log
+
+# Docker
+.docker/
+.cache/
+
+# Runtime
+*.pid
+*.seed
+coverage/
+
+# Build artifacts
+dist/
+build/
+

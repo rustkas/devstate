@@ -1,0 +1,48 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://beamline.schemas/state/v1.0.0",
+  "title": "Beamline State (v1.0.0)",
+  "type": "object",
+  "additionalProperties": true,
+  "required": ["project", "version", "current_cp", "no_drift", "agents", "artifact_checksums", "updated_at"],
+  "properties": {
+    "project": { "type": "string" },
+    "version": { "type": "string" },
+    "current_cp": { "type": "string", "pattern": "^CP\\d+-[A-Z]+$" },
+    "no_drift": { "type": "boolean" },
+    "updated_at": { "type": "string" },
+    "agents": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": true,
+        "required": ["id", "name", "task", "cp", "status"],
+        "properties": {
+          "id": { "type": "string" },
+          "name": { "type": "string" },
+          "task": { "type": "string" },
+          "cp": { "type": "string" },
+          "status": { "type": "string", "enum": ["planned", "pending", "in_progress", "completed", "blocked", "cancelled"] },
+          "started_at": { "type": "string" },
+          "updated_at": { "type": "string" }
+        }
+      }
+    },
+    "artifact_checksums": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": true,
+        "required": ["path", "hash", "ts"],
+        "properties": {
+          "path": { "type": "string" },
+          "hash": { "type": "string", "pattern": "^[a-f0-9]{64}$" },
+          "ts": { "type": "string" },
+          "note": { "type": "string" }
+        }
+      }
+    },
+    "migration_params": { "type": "object", "additionalProperties": true },
+    "observability_artifacts": { "type": "object", "additionalProperties": true }
+  }
+}

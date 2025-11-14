@@ -1,0 +1,36 @@
+version: "3.8"
+
+services:
+  db:
+    image: postgres:15-alpine
+    container_name: devstate-db
+    environment:
+      POSTGRES_USER: beamline
+      POSTGRES_PASSWORD: dev_password
+      POSTGRES_DB: beamline
+    ports:
+      - "55432:5432"
+    volumes:
+      - devstate_db_data:/var/lib/postgresql/data
+
+  devstate:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: devstate-http
+    environment:
+      DATABASE_URL: postgresql://beamline:dev_password@devstate-db:5432/beamline
+      HMAC_SECRET: dev-secret-not-for-prod
+      DB_SCHEMA: public
+      DEVSTATE_HTTP_PORT: 3080
+    depends_on:
+      - db
+    ports:
+      - "3180:3080"
+    volumes:
+      - ./.trae:/app/state-manager/.trae
+
+volumes:
+  devstate_db_data:
+    driver: local
+
