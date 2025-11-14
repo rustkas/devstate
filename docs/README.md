@@ -17,9 +17,9 @@ State schema reference (Source of Truth): `docs/STATE.schema.json` at the reposi
 - Logs: `make devstate-logs`
 
 ### Without Docker (fallback)
-- Set env: `export DATABASE_URL=postgresql://beamline:dev_password@localhost:55432/beamline; export HMAC_SECRET=dev-secret-not-for-prod; export DB_SCHEMA=public`
-- Start: `node devstate/server/http-server.js`
-- Health: `curl http://localhost:3080/health`
+ - Set env: `export DATABASE_URL=postgresql://devstate:dev_password@localhost:55432/devstate; export HMAC_SECRET=dev-secret-not-for-prod; export DB_SCHEMA=public`
+  - Start: `node devstate/server/http-server.js`
+  - Health: `curl http://localhost:3080/health`
 
 ## CLI Utilities
 - Import: `bash devstate/scripts/devstate.sh import`

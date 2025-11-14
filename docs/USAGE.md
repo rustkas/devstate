@@ -32,8 +32,9 @@ node devstate/server/devstate-server.js import_files
 ```
 
 ## CI Integration
-- Add `scripts/devstate_verify.sh` to pre-merge or pipeline stage.
-- Optional: run `scripts/devstate_export.sh` before packaging artifacts.
+ - Add `devstate/scripts/devstate_verify.sh` to a required pipeline stage (pre-merge).
+ - Optional: run `devstate/scripts/devstate_export.sh` before packaging artifacts.
+ - Health check step: `curl -fsS http://localhost:3080/health` (or `3180` standalone).
 
 ## TRAE Configuration Example (legacy MCP settings)
 
@@ -42,9 +43,9 @@ node devstate/server/devstate-server.js import_files
   "mcpServers": {
     "DevState": {
       "command": "node",
-      "args": ["apps/otp/beamline_store/mcp/devstate-server.js"],
+      "args": ["devstate/server/devstate-server.js"],
       "env": {
-        "DATABASE_URL": "postgres://user:[MASKED]@localhost:5432/devstate",
+        "DATABASE_URL": "postgresql://devstate:[MASKED]@localhost:55432/devstate",
         "HMAC_SECRET": "[MASKED]"
       }
     }
@@ -56,6 +57,12 @@ node devstate/server/devstate-server.js import_files
 - On DB outage: IDE operates in read-only; CI relies on exported `.trae/*`.
 - After recovery: run `export_files` to resync files with DB.
 - Locking: use `lock_state(scope, ttl)` and `unlock_state(lock_id)` for critical updates.
+ 
+## IDE Integration
+- Preflight: `make devstate-up` → `curl -fsS http://localhost:3080/health` → `bash devstate/scripts/devstate_verify.sh`
+- Before edit: acquire lock via `POST /v1/devstate/locks` (reason `edit`, `ttl_sec` 900)
+- After edit: `bash devstate/scripts/devstate_export.sh` → `bash devstate/scripts/devstate_verify.sh` → `DELETE /v1/devstate/locks/:id`
+- Pre-push: `bash devstate/scripts/devstate_verify.sh` and `curl -fsS 'http://localhost:3080/v1/devstate/verify?limit=0'`
 
 ## Security
 - Secrets are only via env; never commit secrets.
