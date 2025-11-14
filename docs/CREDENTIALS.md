@@ -1,4 +1,4 @@
-# Development Credentials & Storage Practices
+# Development Credentials & Storage Practices (Example)
 
 This document tracks local development accounts and secrets, and describes safe handling.
 
