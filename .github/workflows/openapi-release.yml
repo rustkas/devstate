@@ -1,0 +1,22 @@
+name: OpenAPI Release Artifacts
+
+on:
+  push:
+    tags:
+      - 'v*'
+
+jobs:
+  publish-openapi:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Upload OpenAPI YAML
+        uses: actions/upload-artifact@v4
+        with:
+          name: openapi-yaml
+          path: openapi.yaml
+      - name: Upload OpenAPI JSON
+        uses: actions/upload-artifact@v4
+        with:
+          name: openapi-json
+          path: openapi.json

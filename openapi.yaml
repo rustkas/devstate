@@ -27,6 +27,17 @@ components:
         error: { type: string }
         message: { type: string }
         trace_id: { type: string }
+  responses:
+    Error:
+      description: Error response
+      content:
+        application/json:
+          schema: { $ref: '#/components/schemas/Error' }
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
 servers:
   - url: http://localhost:3180
 paths:
@@ -54,8 +65,11 @@ paths:
           content:
             application/json:
               schema: { $ref: '#/components/schemas/State' }
+        default: { $ref: '#/components/responses/Error' }
     post:
       summary: Update state (patch)
+      security:
+        - bearerAuth: []
       requestBody:
         required: true
         content:
@@ -63,9 +77,12 @@ paths:
             schema: { type: object, additionalProperties: true }
       responses:
         '200': { description: Update result }
+        default: { $ref: '#/components/responses/Error' }
   /v1/devstate/history:
     post:
       summary: Append history entry
+      security:
+        - bearerAuth: []
       requestBody:
         required: true
         content:
@@ -85,6 +102,7 @@ paths:
           content:
             application/json:
               schema: { type: object, properties: { new_hmac: { type: string }, operation_id: { type: string }, trace_id: { type: string } } }
+        default: { $ref: '#/components/responses/Error' }
   /v1/devstate/history/search:
     get:
       summary: Search history (paginated)
@@ -120,9 +138,12 @@ paths:
                     items: { $ref: '#/components/schemas/HistoryEntry' }
                   next_cursor: { type: integer, nullable: true }
                   trace_id: { type: string }
+        default: { $ref: '#/components/responses/Error' }
   /v1/devstate/history/{id}:
     delete:
       summary: Tombstone history entry
+      security:
+        - bearerAuth: []
       parameters:
         - in: path
           name: id
@@ -130,24 +151,32 @@ paths:
           schema: { type: integer }
       responses:
         '200': { description: Delete result }
+        default: { $ref: '#/components/responses/Error' }
   /v1/devstate/export:
     get:
       summary: Export state and history files
       responses:
         '200': { description: Export result }
+        default: { $ref: '#/components/responses/Error' }
   /v1/devstate/import:
     post:
       summary: Import state and history files
+      security:
+        - bearerAuth: []
       responses:
         '200': { description: Import result }
+        default: { $ref: '#/components/responses/Error' }
   /v1/devstate/keys/active:
     get:
       summary: Get active HMAC key
       responses:
         '200': { description: Active key }
+        default: { $ref: '#/components/responses/Error' }
   /v1/devstate/keys/rotate:
     post:
       summary: Rotate HMAC key
+      security:
+        - bearerAuth: []
       requestBody:
         required: true
         content:
@@ -160,3 +189,4 @@ paths:
                 secret: { type: string }
       responses:
         '200': { description: Rotation result }
+        default: { $ref: '#/components/responses/Error' }
