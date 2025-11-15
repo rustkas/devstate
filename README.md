@@ -1,5 +1,17 @@
 # DevState — State & Audit Service
 
+![stars](https://img.shields.io/github/stars/rustkas/devstate?style=for-the-badge)
+![forks](https://img.shields.io/github/forks/rustkas/devstate?style=for-the-badge)
+![issues](https://img.shields.io/github/issues/rustkas/devstate?style=for-the-badge)
+![last-commit](https://img.shields.io/github/last-commit/rustkas/devstate?style=for-the-badge)
+![ci](https://img.shields.io/github/actions/workflow/status/rustkas/devstate/devstate-verify.yml?style=for-the-badge)
+![visitors](https://visitor-badge.laobi.icu/badge?page_id=rustkas.devstate)
+![views](https://komarev.com/ghpvc/?username=rustkas&repo=devstate&style=for-the-badge)
+![release](https://img.shields.io/github/v/release/rustkas/devstate?style=for-the-badge)
+![downloads](https://img.shields.io/github/downloads/rustkas/devstate/total?style=for-the-badge)
+![repo-size](https://img.shields.io/github/repo-size/rustkas/devstate?style=for-the-badge)
+![languages](https://img.shields.io/github/languages/count/rustkas/devstate?style=for-the-badge)
+
 DevState is a lightweight HTTP service that manages the project state (`.trae/state.json`) and audit history (`.trae/history.json`), enforces No-Drift, and verifies an HMAC chain of operations. It is designed to support development consistency across IDEs and CI/CD pipelines.
 
 TRAE IDE
