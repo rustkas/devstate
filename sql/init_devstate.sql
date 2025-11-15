@@ -134,3 +134,17 @@ LIMIT 100;
 -- * HMAC calculation is performed in the application using HMAC_SECRET.
 -- * This schema enforces chain continuity via hmac_prev but does not verify HMAC correctness.
 -- * Transactions should combine append_history and update_state when needed.
+-- Archive table for long-term retention
+CREATE TABLE IF NOT EXISTS history_archive (
+  id BIGINT PRIMARY KEY,
+  ts TIMESTAMPTZ NOT NULL,
+  actor TEXT NOT NULL,
+  action TEXT NOT NULL,
+  cp_from TEXT,
+  cp_to TEXT,
+  state_checksum TEXT,
+  hmac_prev TEXT,
+  hmac TEXT NOT NULL,
+  metadata JSONB
+);
+CREATE INDEX IF NOT EXISTS idx_history_archive_ts ON history_archive (ts DESC);

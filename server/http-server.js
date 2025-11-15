@@ -223,3 +223,14 @@ app.post('/v1/devstate/locks/cleanup', async (_req, res) => {
     res.status(500).json({ error: 'locks_cleanup_failed', message: e.message });
   }
 });
+// Archive history older than 'days' into history_archive
+app.post('/v1/devstate/history/archive', async (req, res) => {
+  try {
+    const days = Number((req.body || {}).days || 30);
+    const cutoff = new Date(Date.now() - days * 24 * 3600 * 1000);
+    const result = await mcp.archiveHistory(cutoff);
+    res.json(result);
+  } catch (e) {
+    res.status(500).json({ error: 'archive_failed', message: e.message });
+  }
+});

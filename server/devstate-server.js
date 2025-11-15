@@ -6,7 +6,7 @@
 const fs = require('fs');
 const path = require('path');
 const crypto = require('crypto');
-const { Client } = require('pg');
+const { Client, Pool } = require('pg');
 
 // Env
 const DATABASE_URL = process.env.DATABASE_URL;
@@ -64,9 +64,13 @@ function loadStateSchema() {
 const validateState = loadStateSchema();
 
 // PG Client factory
+const pgPool = new Pool({ connectionString: DATABASE_URL, max: 10, idleTimeoutMillis: 30000 });
 function pgClient() {
   const client = new Client({ connectionString: DATABASE_URL });
   return client;
+}
+async function pgPoolClient() {
+  return await pgPool.connect();
 }
 
 // Helpers
@@ -137,14 +141,13 @@ function redact(obj) {
 }
 
 async function getState() {
-  const client = pgClient();
-  await client.connect();
+  const client = await pgPoolClient();
   try {
     const res = await client.query(`SELECT json, checksum FROM ${DB_SCHEMA}.state_current WHERE id = 1`);
     if (res.rowCount === 0) throw new Error('state_current missing');
     return res.rows[0];
   } finally {
-    await client.end();
+    client.release();
   }
 }
 
@@ -338,6 +341,30 @@ async function importFiles() {
   }
 }
 
+// Move old history entries to archive based on cutoff timestamp
+async function archiveHistory(cutoffDate) {
+  const client = pgClient();
+  await client.connect();
+  try {
+    await client.query('BEGIN');
+    const res = await client.query(`SELECT id, ts, actor, action, cp_from, cp_to, state_checksum, hmac_prev, hmac, metadata FROM ${DB_SCHEMA}.history_entries WHERE ts < $1 ORDER BY id ASC`, [cutoffDate]);
+    for (const e of res.rows) {
+      await client.query(
+        `INSERT INTO ${DB_SCHEMA}.history_archive(id, ts, actor, action, cp_from, cp_to, state_checksum, hmac_prev, hmac, metadata) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10) ON CONFLICT (id) DO NOTHING`,
+        [e.id, e.ts, e.actor, e.action, e.cp_from || null, e.cp_to || null, e.state_checksum || null, e.hmac_prev || null, e.hmac, e.metadata || null]
+      );
+    }
+    await client.query(`DELETE FROM ${DB_SCHEMA}.history_entries WHERE ts < $1`, [cutoffDate]);
+    await client.query('COMMIT');
+    return { ok: true, archived_count: res.rowCount };
+  } catch (e) {
+    await client.query('ROLLBACK');
+    throw e;
+  } finally {
+    await client.end();
+  }
+}
+
 async function lockState(scope, ttlSec, actor = 'system') {
   const client = pgClient();
   await client.connect();
@@ -437,6 +464,7 @@ module.exports = {
   verifyHmacChain,
   exportFiles,
   importFiles,
+  archiveHistory,
   lockState,
   unlockState,
   searchHistory,
