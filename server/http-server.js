@@ -32,6 +32,12 @@ const hmacVerifyFail = new client.Counter({ name: 'devstate_hmac_verify_fail_tot
 const stateUpdates = new client.Counter({ name: 'devstate_state_updates_total', help: 'State updates', registers: [register] });
 const historyAppends = new client.Counter({ name: 'devstate_history_appends_total', help: 'History appends', registers: [register] });
 const locksActive = new client.Gauge({ name: 'devstate_locks_active', help: 'Active locks', registers: [register] });
+const requestTotal = new client.Counter({ name: 'devstate_request_total', help: 'Requests by route/status', labelNames: ['route', 'status'], registers: [register] });
+const appendFail = new client.Counter({ name: 'devstate_append_fail_total', help: 'Append history failures', registers: [register] });
+const stateUpdateFail = new client.Counter({ name: 'devstate_state_update_fail_total', help: 'State update failures', registers: [register] });
+const verifyDuration = new client.Histogram({ name: 'devstate_verify_duration_seconds', help: 'Verify duration', buckets: [0.01,0.05,0.1,0.5,1,2,5], registers: [register] });
+const appendDuration = new client.Histogram({ name: 'devstate_append_duration_seconds', help: 'Append duration', buckets: [0.01,0.05,0.1,0.5,1,2,5], registers: [register] });
+const stateUpdateDuration = new client.Histogram({ name: 'devstate_state_update_duration_seconds', help: 'State update duration', buckets: [0.01,0.05,0.1,0.5,1,2,5], registers: [register] });
 
 // Health
 app.get('/health', (_req, res) => {
@@ -42,8 +48,11 @@ app.get('/health', (_req, res) => {
 app.get('/v1/devstate/verify', async (req, res) => {
   try {
     const limit = req.query.limit ? Number(req.query.limit) : 0;
+    const end = verifyDuration.startTimer();
     const result = await mcp.verifyHmacChain(limit);
     if (result && result.ok) hmacVerifyPass.inc(); else hmacVerifyFail.inc();
+    end();
+    requestTotal.inc({ route: 'verify', status: '200' });
     res.json(result);
   } catch (e) {
     hmacVerifyFail.inc();
@@ -52,6 +61,7 @@ app.get('/v1/devstate/verify', async (req, res) => {
       const state = await mcp.getState();
       if (state) return res.json({ ok: true });
     } catch (_ignored) {}
+    requestTotal.inc({ route: 'verify', status: '500' });
     res.status(500).json({ error: 'verify_failed', message: e.message });
   }
 });
@@ -70,10 +80,15 @@ app.get('/v1/devstate/state', async (_req, res) => {
 app.post('/v1/devstate/state', async (req, res) => {
   try {
     const patch = req.body || {};
+    const end = stateUpdateDuration.startTimer();
     const result = await mcp.updateState(patch, 'http');
     stateUpdates.inc();
+    end();
+    requestTotal.inc({ route: 'state', status: '200' });
     res.json(result);
   } catch (e) {
+    stateUpdateFail.inc();
+    requestTotal.inc({ route: 'state', status: '400' });
     res.status(400).json({ error: 'update_state_failed', message: e.message });
   }
 });
@@ -82,10 +97,15 @@ app.post('/v1/devstate/state', async (req, res) => {
 app.post('/v1/devstate/history', async (req, res) => {
   try {
     const entry = req.body || {};
+    const end = appendDuration.startTimer();
     const result = await mcp.appendHistory(entry);
     historyAppends.inc();
+    end();
+    requestTotal.inc({ route: 'history', status: '200' });
     res.json(result);
   } catch (e) {
+    appendFail.inc();
+    requestTotal.inc({ route: 'history', status: '400' });
     res.status(400).json({ error: 'append_history_failed', message: e.message });
   }
 });

@@ -2,9 +2,12 @@
   "title": "DevState Extended",
   "panels": [
     { "type": "graph", "title": "Verify p95", "targets": [{ "expr": "histogram_quantile(0.95, sum(rate(devstate_verify_duration_seconds_bucket[5m])) by (le))" }] },
+    { "type": "graph", "title": "Verify p99", "targets": [{ "expr": "histogram_quantile(0.99, sum(rate(devstate_verify_duration_seconds_bucket[5m])) by (le))" }] },
     { "type": "graph", "title": "Verify p50", "targets": [{ "expr": "histogram_quantile(0.50, sum(rate(devstate_verify_duration_seconds_bucket[5m])) by (le))" }] },
     { "type": "graph", "title": "Append Ops (5m)", "targets": [{ "expr": "increase(devstate_history_appends_total[5m])" }] },
     { "type": "graph", "title": "State Updates (5m)", "targets": [{ "expr": "increase(devstate_state_updates_total[5m])" }] },
+    { "type": "graph", "title": "Requests per second (verify)", "targets": [{ "expr": "rate(devstate_request_total{route='verify'}[1m])" }] },
+    { "type": "graph", "title": "Success rate (verify)", "targets": [{ "expr": "rate(devstate_request_total{route='verify',status='200'}[5m]) / (rate(devstate_request_total{route='verify'}[5m]) + 1e-9)" }] },
     { "type": "graph", "title": "Append Failures (5m)", "targets": [{ "expr": "increase(devstate_append_fail_total[5m])" }] },
     { "type": "graph", "title": "State Update Failures (5m)", "targets": [{ "expr": "increase(devstate_state_update_fail_total[5m])" }] },
     { "type": "stat", "title": "Rate Limited (5m)", "targets": [{ "expr": "increase(devstate_rate_limited_total[5m])" }] },

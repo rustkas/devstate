@@ -97,6 +97,7 @@ Security:
 - Verify returns 500: ensure DB initialized (compose auto-init enabled) and `HMAC_SECRET` set; on first run, `/v1/devstate/verify` returns `{ ok: true }` if history empty.
 - Import fails: validate `.trae/state.json` against schema and check HMAC chain in `.trae/history.json`.
 - Bearer token required: set `DEVSTATE_API_TOKEN` in server env and pass `Authorization: Bearer <token>`.
+ - k6 append errors: check `DEVSTATE_API_TOKEN` is provided in workflow or remove `requireAuth` for tests.
 
 ## Clients QuickStart
 - TypeScript: `npm install @rustkas/devstate-client` → see `clients/typescript/README.md` for usage.
