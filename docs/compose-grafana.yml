@@ -6,7 +6,9 @@ services:
       - "3000:3000"
     environment:
       - GF_SECURITY_ADMIN_PASSWORD=admin
+      - GF_PATHS_PROVISIONING=/etc/grafana/provisioning
     volumes:
       - ./grafana_dashboard.json:/var/lib/grafana/dashboards/grafana_dashboard.json:ro
       - ./grafana_dashboard_extended.json:/var/lib/grafana/dashboards/grafana_dashboard_extended.json:ro
+      - ./grafana_provision_dashboards.yml:/etc/grafana/provisioning/dashboards/devstate.yml:ro
     restart: unless-stopped
