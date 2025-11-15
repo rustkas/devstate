@@ -20,6 +20,15 @@ jobs:
       - name: Generate TS client from OpenAPI
         run: |
           npm -C clients/typescript run gen
+      - name: Bump client version if OpenAPI changed
+        id: bump
+        run: |
+          if git diff --name-only HEAD^ HEAD | grep -q 'openapi.yaml'; then
+            echo 'OpenAPI changed; bump minor version'
+          node -e "const fs=require('fs');const p='./clients/typescript/package.json';const j=JSON.parse(fs.readFileSync(p));const [maj,min,patch]=String(j.version).split('.').map(Number);j.version=[maj,min+1,0].join('.');fs.writeFileSync(p,JSON.stringify(j,null,2));"
+          else
+            echo 'No OpenAPI change';
+          fi
       - name: Build
         run: |
           npm -C clients/typescript run build

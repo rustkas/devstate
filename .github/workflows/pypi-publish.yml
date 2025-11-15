@@ -21,9 +21,26 @@ jobs:
       - name: Generate Python client
         run: |
           npx openapi-generator-cli generate -i openapi.yaml -g python -o clients/python --additional-properties=packageName=devstate_client
+      - name: Bump Python version if OpenAPI changed
+        run: |
+          if git diff --name-only HEAD^ HEAD | grep -q 'openapi.yaml'; then
+            echo 'OpenAPI changed; bump minor version in setup.cfg'
+            echo 'version = 0.2.0' > clients/python/setup.cfg
+          fi
       - name: Build wheel and sdist
         working-directory: clients/python
         run: |
+          TAG=${GITHUB_REF#refs/tags/}
+          VER=${TAG#client-py-v}
+          python - <<'PY'
+import tomllib, re
+from pathlib import Path
+p = Path('pyproject.toml')
+t = p.read_text()
+t = re.sub(r'version\s*=\s*"[0-9.]+"', f'version = "{VER}"', t)
+p.write_text(t)
+print('set version', VER)
+PY
           python -m build
       - name: Publish to PyPI
         working-directory: clients/python

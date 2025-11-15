@@ -50,7 +50,7 @@ GitHub Publication (devstat)
 - Ensure this `README.md` is at the root and references TRAE.
 - Initial commit and push:
   - `git init && git add . && git commit -m "DevState initial release (MIT)"`
-  - `git branch -M main && git remote add origin git@github.com:rustkas/devstat.git`
+  - `git branch -M main && git remote add origin git@github.com:rustkas/devstate.git`
   - `git push -u origin main`
 
 GitHub Actions

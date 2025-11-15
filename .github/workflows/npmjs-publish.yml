@@ -21,6 +21,9 @@ jobs:
         run: |
           npm -C clients/typescript ci
           npm -C clients/typescript run gen
+          if git diff --name-only HEAD^ HEAD | grep -q 'openapi.yaml'; then
+            node -e "const fs=require('fs');const p='./clients/typescript/package.json';const j=JSON.parse(fs.readFileSync(p));const [maj,min,patch]=j.version.split('.').map(Number);j.version=[maj,min+1,0].join('.');fs.writeFileSync(p,JSON.stringify(j,null,2));"
+          fi
           npm -C clients/typescript run build
       - name: Publish to npmjs
         env:

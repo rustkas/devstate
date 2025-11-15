@@ -1,0 +1,23 @@
+name: Go Module Publish
+
+on:
+  workflow_dispatch:
+  push:
+    tags:
+      - 'client-go-v*'
+
+jobs:
+  publish-go:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Generate Go client
+        run: |
+          npm install -g @openapitools/openapi-generator-cli
+          openapi-generator-cli generate -i openapi.yaml -g go -o clients/go --additional-properties=packageName=devstate
+      - name: Tidy
+        run: |
+          cd clients/go && go mod tidy
+      - name: Push tag info
+        run: |
+          echo "Go module is published via Git tags; consumers use 'go get github.com/rustkas/devstate/clients/go@<tag>'"

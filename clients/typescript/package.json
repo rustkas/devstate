@@ -13,7 +13,7 @@
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/rustkas/devstat.git"
+    "url": "git+https://github.com/rustkas/devstate.git"
   },
   "devDependencies": {
     "typescript": "^5.4.0",
