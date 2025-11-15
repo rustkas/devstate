@@ -1,0 +1,33 @@
+name: Coverage (Codecov)
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  coverage:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+      - name: Install server deps
+        run: |
+          npm -C server install --no-audit --no-fund || true
+      - name: Run server under nyc and hit /health
+        run: |
+          npx nyc --reporter=lcov --reporter=text node server/http-server.js &
+          SERVER_PID=$!
+          for i in $(seq 1 20); do curl -fsS http://localhost:3080/health && break || sleep 1; done
+          curl -fsS http://localhost:3080/health || true
+          kill $SERVER_PID || true
+      - name: Upload coverage to Codecov
+        uses: codecov/codecov-action@v4
+        with:
+          files: ./coverage/lcov.info
+          fail_ci_if_error: false
+        env:
+          CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}

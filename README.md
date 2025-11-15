@@ -4,7 +4,7 @@
 ![downloads](https://img.shields.io/github/downloads/rustkas/devstate/total?style=for-the-badge)
 ![repo-size](https://img.shields.io/github/repo-size/rustkas/devstate?style=for-the-badge)
 [![license](https://img.shields.io/github/license/rustkas/devstate?style=for-the-badge)](https://github.com/rustkas/devstate/blob/main/LICENSE)
-[![coverage](https://codecov.io/gh/rustkas/devstate/branch/main/graph/badge.svg)](https://codecov.io/gh/rustkas/devstate)
+[![coverage](https://codecov.io/gh/rustkas/devstate/graph/badge.svg?token=${CODECOV_TOKEN})](https://codecov.io/gh/rustkas/devstate)
 
 DevState is a lightweight HTTP service that manages the project state (`.trae/state.json`) and audit history (`.trae/history.json`), enforces No-Drift, and verifies an HMAC chain of operations. It is designed to support development consistency across IDEs and CI/CD pipelines.
 
@@ -93,6 +93,16 @@ Security:
 - MCP usage: `devstate/docs/MCP_USAGE.md`
 - Historical note: `devstate/docs/BEAMLINE_STORE_TZ.md`
 - Scripts: `devstate/scripts/README.md`
+
+## Troubleshooting
+- Verify returns 500: ensure DB initialized (compose auto-init enabled) and `HMAC_SECRET` set; on first run, `/v1/devstate/verify` returns `{ ok: true }` if history empty.
+- Import fails: validate `.trae/state.json` against schema and check HMAC chain in `.trae/history.json`.
+- Bearer token required: set `DEVSTATE_API_TOKEN` in server env and pass `Authorization: Bearer <token>`.
+
+## Clients QuickStart
+- TypeScript: `npm install @rustkas/devstate-client` → see `clients/typescript/README.md` for usage.
+- Python: `pip install devstate-client` (after publish) → see `clients/python/USAGE.md`.
+- Go: `go get github.com/rustkas/devstate/clients/go@client-go-vX.Y.Z`.
 
 ## License
 MIT. See `LICENSE`.
