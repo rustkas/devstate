@@ -1,0 +1,30 @@
+name: Publish TS Client
+
+on:
+  workflow_dispatch:
+  push:
+    tags:
+      - 'client-ts-v*'
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          registry-url: 'https://npm.pkg.github.com'
+      - name: Build client
+        run: |
+          npm -C clients/typescript ci
+          npm -C clients/typescript run gen
+          npm -C clients/typescript run build
+      - name: Publish to GitHub Packages
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          npm -C clients/typescript publish --access public

@@ -1,0 +1,31 @@
+name: Generate Clients (Go/Python)
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [ main ]
+
+jobs:
+  generate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+      - name: Install generator
+        run: |
+          npm install -g @openapitools/openapi-generator-cli
+      - name: Generate Go client
+        run: |
+          openapi-generator-cli generate -i openapi.yaml -g go -o clients/go --additional-properties=packageName=devstate
+      - name: Generate Python client
+        run: |
+          openapi-generator-cli generate -i openapi.yaml -g python -o clients/python --additional-properties=packageName=devstate_client
+      - name: Upload clients
+        uses: actions/upload-artifact@v4
+        with:
+          name: devstate-clients
+          path: |
+            clients/go
+            clients/python
