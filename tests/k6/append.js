@@ -19,7 +19,8 @@ export default function () {
   const headers = {}
   const token = __ENV.DEVSTATE_API_TOKEN
   if (token) headers['Authorization'] = `Bearer ${token}`
-  const res = http.post(`${base}/v1/devstate/history`, JSON.stringify(payload), { headers: { 'Content-Type': 'application/json', ...headers } })
+  const finalHeaders = Object.assign({ 'Content-Type': 'application/json' }, headers)
+  const res = http.post(`${base}/v1/devstate/history`, JSON.stringify(payload), { headers: finalHeaders })
   check(res, { 'append 200': (r) => r.status === 200 })
   sleep(0.2)
 }
