@@ -19,7 +19,7 @@ jobs:
           npm -C clients/typescript install --no-audit --no-fund
       - name: Generate TS client from OpenAPI
         run: |
-          npx @openapitools/openapi-generator-cli generate -i openapi.yaml -g typescript-axios -o clients/typescript/src --additional-properties=supportsES6=true,withSeparateModelsAndApi=true,modelPropertyNaming=original
+          npx @openapitools/openapi-generator-cli generate -i openapi.yaml -g typescript-axios -o clients/typescript/src --additional-properties=supportsES6=true,withSeparateModelsAndApi=true,modelPropertyNaming=original --api-package apis --model-package models
       - name: Bump client version if OpenAPI changed
         id: bump
         run: |

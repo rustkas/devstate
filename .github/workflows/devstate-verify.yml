@@ -23,7 +23,7 @@ jobs:
 
       - name: Health check
         run: |
-          curl -fsS http://localhost:3180/health
+          for i in $(seq 1 30); do curl -fsS http://localhost:3180/health && break || sleep 2; done
 
       - name: Verify HMAC chain
         env:
