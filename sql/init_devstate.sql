@@ -31,7 +31,7 @@ CREATE TABLE IF NOT EXISTS history_entries (
   cp_to TEXT,
   state_checksum TEXT,
   hmac_prev TEXT,
-  hmac TEXT NOT NULL,
+  hmac TEXT NOT NULL CHECK (char_length(hmac) = 64 AND hmac ~ '^[0-9a-f]{64}$'),
   metadata JSONB
 );
 
@@ -39,6 +39,7 @@ CREATE TABLE IF NOT EXISTS history_entries (
 CREATE INDEX IF NOT EXISTS idx_history_ts ON history_entries (ts DESC);
 CREATE INDEX IF NOT EXISTS idx_history_actor ON history_entries (actor);
 CREATE INDEX IF NOT EXISTS idx_history_action ON history_entries (action);
+CREATE INDEX IF NOT EXISTS idx_history_hmac_prev ON history_entries (hmac_prev);
 
 -- Prevent UPDATE and DELETE on history_entries (append-only)
 CREATE OR REPLACE FUNCTION prevent_history_modify() RETURNS trigger AS $$
@@ -104,6 +105,15 @@ CREATE TABLE IF NOT EXISTS devstate_locks (
 
 CREATE INDEX IF NOT EXISTS idx_devstate_locks_scope ON devstate_locks (scope);
 CREATE INDEX IF NOT EXISTS idx_devstate_locks_expires ON devstate_locks (expires_at);
+
+-- Optional: HMAC key registry for rotation
+CREATE TABLE IF NOT EXISTS devstate_keys (
+  id TEXT PRIMARY KEY,
+  secret TEXT NOT NULL,
+  active BOOLEAN NOT NULL DEFAULT false,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+CREATE INDEX IF NOT EXISTS idx_devstate_keys_active ON devstate_keys (active);
 
 -- Helper view: latest history summary
 CREATE OR REPLACE VIEW history_latest AS

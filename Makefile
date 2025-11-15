@@ -1,6 +1,6 @@
 DEVSTATE_COMPOSE := docker-compose.yml
 
-.PHONY: devstate-up devstate-down devstate-logs devstate-init devstate-health devstate-verify devstate-export
+.PHONY: devstate-up devstate-down devstate-logs devstate-init devstate-health devstate-verify devstate-export devstate-ci
 
 devstate-up:
 	@echo "Starting DevState standalone stack (ports: HTTP 3180, PG 55432)"
@@ -27,3 +27,10 @@ devstate-verify:
 
 devstate-export:
 	@bash scripts/devstate_export.sh
+
+devstate-ci:
+	@$(MAKE) devstate-up
+	@$(MAKE) devstate-init
+	@$(MAKE) devstate-health
+	@$(MAKE) devstate-verify
+	@$(MAKE) devstate-export

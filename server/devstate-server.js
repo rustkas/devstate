@@ -75,12 +75,36 @@ function sha256Hex(buf) {
 }
 
 function checksumForJson(obj) {
-  const normalized = JSON.stringify(obj);
+  const normalized = stableStringify(obj);
   return 'sha256:' + sha256Hex(Buffer.from(normalized, 'utf8'));
 }
 
 function hmacHex(message) {
   return crypto.createHmac('sha256', HMAC_SECRET).update(message).digest('hex');
+}
+
+function stableStringify(obj) {
+  if (obj === null || typeof obj !== 'object') return JSON.stringify(obj);
+  if (Array.isArray(obj)) return '[' + obj.map((v) => stableStringify(v)).join(',') + ']';
+  const keys = Object.keys(obj).sort();
+  const parts = keys.map((k) => '"' + k + '":' + stableStringify(obj[k]));
+  return '{' + parts.join(',') + '}';
+}
+
+function redact(obj) {
+  if (obj === null || typeof obj !== 'object') return obj;
+  if (Array.isArray(obj)) return obj.map((v) => redact(v));
+  const sensitive = ['token', 'access_token', 'refresh_token', 'secret', 'password'];
+  const out = {};
+  for (const k of Object.keys(obj)) {
+    const v = obj[k];
+    if (sensitive.includes(k)) {
+      out[k] = '[MASKED]';
+    } else {
+      out[k] = redact(v);
+    }
+  }
+  return out;
 }
 
 async function getState() {
@@ -109,7 +133,7 @@ async function updateState(patch, actor = 'system') {
     const newChecksum = checksumForJson(updatedJson);
     await client.query(`UPDATE ${DB_SCHEMA}.state_current SET json = $1, checksum = $2, updated_at = NOW() WHERE id = 1`, [updatedJson, newChecksum]);
     const hprev = await lastHistoryHmac(client);
-    const meta = { patch_keys: Object.keys(patch) };
+    const meta = redact({ patch_keys: Object.keys(patch) });
     const hmsg = JSON.stringify({ checksum: newChecksum, meta });
     const hmac = hmacHex(hmsg);
     await client.query(
@@ -117,7 +141,7 @@ async function updateState(patch, actor = 'system') {
       [actor, 'update_state', null, null, newChecksum, hprev || null, hmac, meta]
     );
     await client.query('COMMIT');
-    return { ok: true, new_checksum: newChecksum };
+    return { ok: true, new_checksum: newChecksum, operation_id: crypto.randomUUID() };
   } catch (e) {
     await client.query('ROLLBACK');
     throw e;
@@ -136,13 +160,14 @@ async function appendHistory(entry) {
   await client.connect();
   try {
     const hprev = await lastHistoryHmac(client);
-    const message = JSON.stringify(entry);
+    const clean = Object.assign({}, entry, { metadata: redact(entry.metadata || {}) });
+    const message = JSON.stringify(clean);
     const hmac = hmacHex(message);
     await client.query(
       `INSERT INTO ${DB_SCHEMA}.history_entries(ts, actor, action, cp_from, cp_to, state_checksum, hmac_prev, hmac, metadata) VALUES (NOW(), $1, $2, $3, $4, $5, $6, $7, $8)`,
-      [entry.actor, entry.action, entry.cp_from || null, entry.cp_to || null, entry.state_checksum || null, hprev || null, hmac, entry.metadata || null]
+      [clean.actor, clean.action, clean.cp_from || null, clean.cp_to || null, clean.state_checksum || null, hprev || null, hmac, clean.metadata || null]
     );
-    return { ok: true, new_hmac: hmac };
+    return { ok: true, new_hmac: hmac, operation_id: crypto.randomUUID() };
   } finally {
     await client.end();
   }
@@ -191,16 +216,16 @@ async function verifyHmacChain(limit = 0) {
         return { error: true, pos: row.id, expected: prev, got: row.hmac_prev };
       }
       // Optional recompute check: ensure hmac is reproducible
-      const message = JSON.stringify({
-        actor: row.actor,
-        action: row.action,
-        cp_from: row.cp_from,
-        cp_to: row.cp_to,
-        state_checksum: row.state_checksum,
-        metadata: row.metadata,
-        ts: row.ts
-      });
-      const recomputed = hmacHex(message);
+  const message = JSON.stringify({
+    actor: row.actor,
+    action: row.action,
+    cp_from: row.cp_from,
+    cp_to: row.cp_to,
+    state_checksum: row.state_checksum,
+    metadata: row.metadata,
+    ts: row.ts
+  });
+  const recomputed = hmacHex(message);
       if (recomputed !== row.hmac) {
         return { error: true, pos: row.id, reason: 'hmac_mismatch' };
       }
