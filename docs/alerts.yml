@@ -1,0 +1,27 @@
+groups:
+  - name: devstate.rules
+    rules:
+      - alert: DevStateVerifyFailures
+        expr: increase(devstate_hmac_verify_fail_total[5m]) > 0
+        for: 2m
+        labels:
+          severity: warning
+        annotations:
+          summary: DevState verify failures detected
+          description: devstate_hmac_verify_fail_total increased in the last 5 minutes
+      - alert: DevStateVerifyLatencyHigh
+        expr: histogram_quantile(0.95, sum(rate(devstate_verify_duration_seconds_bucket[5m])) by (le)) > 1
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: DevState verify p95 latency is high
+          description: p95 verify latency exceeds 1s threshold
+      - alert: DevStateRateLimitedSpike
+        expr: increase(devstate_rate_limited_total[5m]) > 50
+        for: 5m
+        labels:
+          severity: info
+        annotations:
+          summary: DevState rate limited requests spike
+          description: more than 50 requests were rate-limited within 5 minutes

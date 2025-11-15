@@ -2,6 +2,31 @@ openapi: 3.0.3
 info:
   title: DevState API
   version: 1.0.0
+components:
+  schemas:
+    State:
+      type: object
+      properties:
+        json: { type: object }
+        checksum: { type: string }
+        trace_id: { type: string }
+    HistoryEntry:
+      type: object
+      properties:
+        actor: { type: string }
+        action: { type: string }
+        cp_from: { type: string, nullable: true }
+        cp_to: { type: string, nullable: true }
+        state_checksum: { type: string, nullable: true }
+        metadata: { type: object }
+        hmac_prev: { type: string, nullable: true }
+        hmac: { type: string }
+    Error:
+      type: object
+      properties:
+        error: { type: string }
+        message: { type: string }
+        trace_id: { type: string }
 servers:
   - url: http://localhost:3180
 paths:
@@ -24,7 +49,11 @@ paths:
     get:
       summary: Get current state
       responses:
-        '200': { description: State }
+        '200':
+          description: State
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/State' }
     post:
       summary: Update state (patch)
       requestBody:
@@ -51,7 +80,11 @@ paths:
                 state_checksum: { type: string, nullable: true }
                 metadata: { type: object }
       responses:
-        '200': { description: Append result }
+        '200':
+          description: Append result
+          content:
+            application/json:
+              schema: { type: object, properties: { new_hmac: { type: string }, operation_id: { type: string }, trace_id: { type: string } } }
   /v1/devstate/history/search:
     get:
       summary: Search history (paginated)
@@ -75,7 +108,18 @@ paths:
           name: cursor
           schema: { type: integer }
       responses:
-        '200': { description: Search result }
+        '200':
+          description: Search result
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  items:
+                    type: array
+                    items: { $ref: '#/components/schemas/HistoryEntry' }
+                  next_cursor: { type: integer, nullable: true }
+                  trace_id: { type: string }
   /v1/devstate/history/{id}:
     delete:
       summary: Tombstone history entry
