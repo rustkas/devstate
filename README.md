@@ -81,6 +81,7 @@ Security:
 ## Observability Assets
 - Prometheus scrape example: `docs/prometheus_scrape.yml` (targets `localhost:3180`, path `/metrics`).
 - Grafana dashboard example: `docs/grafana_dashboard.json` (p95 verify, failure counts, rate‑limited, locks).
+- Grafana extended dashboard: `docs/grafana_dashboard_extended.json` (latency percentiles, throughput, error metrics).
 
 ## API
 - `GET /health` — returns service status.

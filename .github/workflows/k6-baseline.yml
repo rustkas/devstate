@@ -18,6 +18,10 @@ jobs:
         uses: grafana/k6-action@v0.2.0
         with:
           filename: tests/k6/verify.js
+      - name: Run k6 append baseline
+        uses: grafana/k6-action@v0.2.0
+        with:
+          filename: tests/k6/append.js
       - name: Stop Compose
         run: |
           docker compose -f docker-compose.yml down -v
