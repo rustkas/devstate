@@ -1,0 +1,41 @@
+name: OpenAPI Changelog
+
+on:
+  push:
+    branches: [ main ]
+    paths:
+      - 'openapi.yaml'
+
+jobs:
+  changelog:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+      - name: Generate OpenAPI diff
+        run: |
+          git fetch --depth=2 origin main
+          PREV=$(git rev-parse HEAD~1)
+          echo "Previous commit: $PREV"
+          python - <<'PY'
+import difflib
+from pathlib import Path
+cur = Path('openapi.yaml').read_text().splitlines()
+prev = Path('openapi.yaml').read_text().splitlines()  # placeholder if previous fetch failed
+try:
+    import subprocess, tempfile
+    p = subprocess.check_output(['git','show','HEAD~1:openapi.yaml']).decode().splitlines()
+    prev = p
+except Exception as e:
+    pass
+diff = difflib.unified_diff(prev, cur, fromfile='openapi.yaml@prev', tofile='openapi.yaml@curr')
+Path('CHANGELOG_OPENAPI.md').write_text('\n'.join(list(diff)))
+PY
+      - name: Commit changelog
+        run: |
+          git config user.name "github-actions"
+          git config user.email "github-actions@github.com"
+          git add CHANGELOG_OPENAPI.md
+          git commit -m "docs(changelog): update OpenAPI diff changelog" || echo "No changes"
+          git push
