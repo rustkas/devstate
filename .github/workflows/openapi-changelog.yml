@@ -13,24 +13,111 @@ jobs:
       contents: write
     steps:
       - uses: actions/checkout@v4
-      - name: Generate OpenAPI diff
+      - name: Install Python deps
         run: |
-          git fetch --depth=2 origin main
-          PREV=$(git rev-parse HEAD~1)
-          echo "Previous commit: $PREV"
+          python -m pip install --upgrade pip
+          pip install pyyaml
+      - name: Generate semantic OpenAPI changelog
+        run: |
+          git fetch --depth=2 origin main || true
           python - <<'PY'
-import difflib
+import subprocess, yaml
 from pathlib import Path
-cur = Path('openapi.yaml').read_text().splitlines()
-prev = Path('openapi.yaml').read_text().splitlines()  # placeholder if previous fetch failed
-try:
-    import subprocess, tempfile
-    p = subprocess.check_output(['git','show','HEAD~1:openapi.yaml']).decode().splitlines()
-    prev = p
-except Exception as e:
-    pass
-diff = difflib.unified_diff(prev, cur, fromfile='openapi.yaml@prev', tofile='openapi.yaml@curr')
-Path('CHANGELOG_OPENAPI.md').write_text('\n'.join(list(diff)))
+
+def load_prev():
+    try:
+        return yaml.safe_load(subprocess.check_output(['git','show','HEAD~1:openapi.yaml']).decode())
+    except Exception:
+        return None
+
+def load_curr():
+    return yaml.safe_load(Path('openapi.yaml').read_text())
+
+prev = load_prev()
+curr = load_curr()
+
+lines = []
+lines.append('# OpenAPI Semantic Changelog')
+
+if prev is None:
+    lines.append('No previous version found; initial specification.')
+else:
+    prev_paths = set((prev.get('paths') or {}).keys())
+    curr_paths = set((curr.get('paths') or {}).keys())
+    added_paths = sorted(curr_paths - prev_paths)
+    removed_paths = sorted(prev_paths - curr_paths)
+
+    if added_paths:
+        lines.append('## Added Paths')
+        for p in added_paths:
+            lines.append(f'- {p}')
+    if removed_paths:
+        lines.append('## Removed Paths')
+        for p in removed_paths:
+            lines.append(f'- {p}')
+
+    common_paths = prev_paths & curr_paths
+    methods = ['get','post','put','delete','patch','options','head']
+    changed_ops = []
+    for p in sorted(common_paths):
+        prev_ops = set((prev['paths'].get(p) or {}).keys())
+        curr_ops = set((curr['paths'].get(p) or {}).keys())
+        add_ops = sorted(curr_ops - prev_ops)
+        rem_ops = sorted(prev_ops - curr_ops)
+        if add_ops:
+            changed_ops.append((p,'added',add_ops))
+        if rem_ops:
+            changed_ops.append((p,'removed',rem_ops))
+        for m in methods:
+            if m in prev_ops and m in curr_ops:
+                prev_params = set([x.get('name') for x in (prev['paths'][p][m].get('parameters') or []) if x.get('name')])
+                curr_params = set([x.get('name') for x in (curr['paths'][p][m].get('parameters') or []) if x.get('name')])
+                add_params = sorted(curr_params - prev_params)
+                rem_params = sorted(prev_params - curr_params)
+                if add_params or rem_params:
+                    changed_ops.append((f'{p} {m}','params_changed',{'added':add_params,'removed':rem_params}))
+
+    if changed_ops:
+        lines.append('## Changed Operations')
+        for p, kind, data in changed_ops:
+            if kind == 'params_changed':
+                added = ', '.join(data['added']) if data['added'] else '—'
+                removed = ', '.join(data['removed']) if data['removed'] else '—'
+                lines.append(f'- {p}: parameters added [{added}] removed [{removed}]')
+            else:
+                joined = ', '.join(data)
+                lines.append(f'- {p}: {kind} [{joined}]')
+
+    prev_schemas = set(((prev.get('components') or {}).get('schemas') or {}).keys())
+    curr_schemas = set(((curr.get('components') or {}).get('schemas') or {}).keys())
+    add_s = sorted(curr_schemas - prev_schemas)
+    rem_s = sorted(prev_schemas - curr_schemas)
+    if add_s:
+        lines.append('## Added Schemas')
+        for s in add_s:
+            lines.append(f'- {s}')
+    if rem_s:
+        lines.append('## Removed Schemas')
+        for s in rem_s:
+            lines.append(f'- {s}')
+
+    common_s = prev_schemas & curr_schemas
+    changed_s = []
+    for s in sorted(common_s):
+        prev_props = set((((prev.get('components') or {}).get('schemas') or {}).get(s) or {}).get('properties',{}).keys())
+        curr_props = set((((curr.get('components') or {}).get('schemas') or {}).get(s) or {}).get('properties',{}).keys())
+        add_props = sorted(curr_props - prev_props)
+        rem_props = sorted(prev_props - curr_props)
+        if add_props or rem_props:
+            changed_s.append((s, add_props, rem_props))
+    if changed_s:
+        lines.append('## Changed Schemas Properties')
+        for s, a, r in changed_s:
+            a_s = ', '.join(a) if a else '—'
+            r_s = ', '.join(r) if r else '—'
+            lines.append(f'- {s}: properties added [{a_s}] removed [{r_s}]')
+
+Path('CHANGELOG_OPENAPI.md').write_text('\n'.join(lines)+"\n")
 PY
       - name: Commit changelog
         run: |
