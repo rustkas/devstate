@@ -1,6 +1,16 @@
 import http from 'k6/http'
 import { check, sleep } from 'k6'
-import { htmlReport } from 'https://raw.githubusercontent.com/benc-uk/k6-reporter/master/dist/bundle.js'
+function makeHtml(data) {
+  const checks = data.root_group.checks || []
+  const pass = checks.filter((c) => c.passes > 0).length
+  const fail = checks.length - pass
+  const rps = (data.metrics.http_reqs.values.rate || 0).toFixed(2)
+  return `<!doctype html><html><head><meta charset=\"utf-8\"><title>k6 Append Summary</title></head><body>
+  <h1>k6 Append Summary</h1>
+  <p>Checks: pass=${pass} fail=${fail}</p>
+  <p>HTTP RPS=${rps}</p>
+  </body></html>`
+}
 
 export const options = {
   scenarios: {
@@ -40,7 +50,7 @@ export default function () {
 
 export function handleSummary(data) {
   return {
-    'append-summary.html': htmlReport(data),
+    'append-summary.html': makeHtml(data),
     'append-summary.json': JSON.stringify(data, null, 2),
   }
 }

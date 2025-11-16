@@ -1,6 +1,18 @@
 import http from 'k6/http'
 import { check, sleep } from 'k6'
-import { htmlReport } from 'https://raw.githubusercontent.com/benc-uk/k6-reporter/master/dist/bundle.js'
+// Local HTML summary generator to avoid remote imports in CI
+function makeHtml(data) {
+  const checks = data.root_group.checks || []
+  const pass = checks.filter((c) => c.passes > 0).length
+  const fail = checks.length - pass
+  const rate = (data.metrics.data_sent.values.rate || 0).toFixed(2)
+  const rps = (data.metrics.http_reqs.values.rate || 0).toFixed(2)
+  return `<!doctype html><html><head><meta charset="utf-8"><title>k6 Verify Summary</title></head><body>
+  <h1>k6 Verify Summary</h1>
+  <p>Checks: pass=${pass} fail=${fail}</p>
+  <p>HTTP RPS=${rps}, Data rate=${rate} bytes/s</p>
+  </body></html>`
+}
 
 export const options = {
   scenarios: {
@@ -34,7 +46,7 @@ export default function () {
 
 export function handleSummary(data) {
   return {
-    'verify-summary.html': htmlReport(data),
+    'verify-summary.html': makeHtml(data),
     'verify-summary.json': JSON.stringify(data, null, 2),
   }
 }

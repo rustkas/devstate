@@ -15,7 +15,9 @@ jobs:
         with:
           node-version: '18'
       - name: Install axios
-        run: npm install axios
+        run: |
+          npm init -y
+          npm install axios
       - name: Start DevState Compose
         run: |
           docker compose -f docker-compose.yml up -d
